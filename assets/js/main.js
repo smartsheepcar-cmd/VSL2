@@ -214,6 +214,23 @@
 
   // Lead form: sends each submission to a Make.com webhook, which appends
   // the row to the team's Google Sheet.
+  // Campaign attribution: remember the UTM parameters the visitor arrived with so
+  // they can be sent along with the lead even if the form is submitted later.
+  const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+  const readUtm = () => {
+    let stored = {};
+    try { stored = JSON.parse(localStorage.getItem('lead_utm') || '{}'); } catch (e) {}
+    const params = new URLSearchParams(window.location.search);
+    const fresh = {};
+    UTM_KEYS.forEach((k) => { if (params.get(k)) fresh[k] = params.get(k); });
+    if (Object.keys(fresh).length) {
+      stored = fresh;
+      try { localStorage.setItem('lead_utm', JSON.stringify(stored)); } catch (e) {}
+    }
+    return stored;
+  };
+  const leadUtm = readUtm();
+
   const LEAD_WEBHOOK_URL = 'https://hook.eu1.make.com/e73ic13hesf3o9q35reh349nsulu07yb';
   const form = document.getElementById('lead-form');
 
@@ -284,6 +301,12 @@
         phone: form.elements['phone'].value.trim(),
         email: form.elements['email'].value.trim(),
         marketingConsent: form.elements['marketing-consent'].checked,
+        utmSource: leadUtm.utm_source || '',
+        utmMedium: leadUtm.utm_medium || '',
+        utmCampaign: leadUtm.utm_campaign || '',
+        utmContent: leadUtm.utm_content || '',
+        utmTerm: leadUtm.utm_term || '',
+        page: window.location.hostname + window.location.pathname,
       };
 
       let redirected = false;
